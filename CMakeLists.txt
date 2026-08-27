@@ -46,7 +46,9 @@ pico_enable_stdio_usb(LIFTS_Mini_Software 1)
 
 # Add the standard library to the build
 target_link_libraries(LIFTS_Mini_Software
-        pico_stdlib)
+        pico_stdlib
+        hardware_spi
+)
 
 # Add the standard include files to the build
 target_include_directories(LIFTS_Mini_Software PRIVATE
