@@ -7,6 +7,9 @@ constexpr uint PIN_MISO = 20;
 constexpr uint PIN_MOSI = 19;
 constexpr uint PIN_SCK = 22;
 constexpr uint PIN_BMP585_CS = 11;
+constexpr uint PIN_LSM6DSO32TR_CS = 3;
+constexpr uint PIN_MMC5983MA_CS = 5;
+constexpr uint PIN_W25Q128JVSIQ_CS = 17;
 
 // BMP585 Register map
 constexpr uint8_t REG_CHIP_ID = 0x01;
@@ -29,6 +32,21 @@ void Init(){
     gpio_init(PIN_BMP585_CS);
     gpio_set_dir(PIN_BMP585_CS, GPIO_OUT);
     gpio_put(PIN_BMP585_CS, 1);
+
+    // Initialise LSM6DSO32TR CS pin
+    gpio_init(PIN_LSM6DSO32TR_CS);
+    gpio_set_dir(PIN_LSM6DSO32TR_CS, GPIO_OUT);
+    gpio_put(PIN_LSM6DSO32TR_CS, 1);
+
+    // Initialise MMC5983MA CS pin
+    gpio_init(PIN_MMC5983MA_CS);
+    gpio_set_dir(PIN_MMC5983MA_CS, GPIO_OUT);
+    gpio_put(PIN_MMC5983MA_CS, 1);
+
+    // Initialise W25Q128JVSIQ CS pin
+    gpio_init(PIN_W25Q128JVSIQ_CS);
+    gpio_set_dir(PIN_W25Q128JVSIQ_CS, GPIO_OUT);
+    gpio_put(PIN_W25Q128JVSIQ_CS, 1);
 }
 
 void BMP585_Init() {
