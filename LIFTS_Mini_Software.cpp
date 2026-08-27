@@ -10,6 +10,7 @@ constexpr uint PIN_BMP585_CS = 11;
 
 // BMP585 Register map
 constexpr uint8_t REG_CHIP_ID = 0x01;
+constexpr uint8_t REG_REV_ID = 0x02;
 constexpr uint8_t SPI_READ_BIT = 0x80;
 
 void Init(){
@@ -61,10 +62,13 @@ int main()
 
     BMP585_Init();
 
-    // Continuously read and print chip ID (Expected: 0x51)
+    // Continuously read and print chip ID (Expected: 0x51) and revision ID (Expected: 0x32)
     while (true) {
         uint8_t chip_id = BMP585_ReadRegister(REG_CHIP_ID);
         printf("Chip ID: 0x%02X\n", chip_id);
+        sleep_ms(1000);
+        uint8_t rev_id = BMP585_ReadRegister(REG_REV_ID);
+        printf("Revision ID: 0x%02X\n", rev_id);
         sleep_ms(1000);
     }
 
