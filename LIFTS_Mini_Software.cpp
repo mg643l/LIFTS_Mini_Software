@@ -16,6 +16,31 @@ constexpr uint8_t REG_CHIP_ID = 0x01;
 constexpr uint8_t REG_REV_ID = 0x02;
 constexpr uint8_t SPI_READ_BIT = 0x80;
 
+void Init();
+void BMP585_Init();
+uint8_t BMP585_ReadRegister(uint8_t Reg_Addr);
+static inline void cs_select(uint cs_pin);
+static inline void cs_deselect(uint cs_pin);
+
+int main()
+{
+    Init();
+
+    BMP585_Init();
+
+    // Continuously read and print chip ID (Expected: 0x51) and revision ID (Expected: 0x32)
+    while (true) {
+        uint8_t chip_id = BMP585_ReadRegister(REG_CHIP_ID);
+        printf("Chip ID: 0x%02X\n", chip_id);
+        sleep_ms(1000);
+        uint8_t rev_id = BMP585_ReadRegister(REG_REV_ID);
+        printf("Revision ID: 0x%02X\n", rev_id);
+        sleep_ms(1000);
+    }
+
+    return 0;
+}
+
 void Init(){
     // Initialise standard I/O
     stdio_init_all();
@@ -55,9 +80,9 @@ void BMP585_Init() {
     uint8_t dummy_rx[2] = {0};
 
     // Write dummy bytes to BMP585 for 16 SCK cycles
-    gpio_put(PIN_BMP585_CS, 0);
+    cs_select(PIN_BMP585_CS);
     spi_write_read_blocking(spi0, dummy_tx, dummy_rx, 2);
-    gpio_put(PIN_BMP585_CS, 1);
+    cs_deselect(PIN_BMP585_CS);
 }
 
 uint8_t BMP585_ReadRegister(uint8_t Reg_Addr) {
@@ -66,29 +91,23 @@ uint8_t BMP585_ReadRegister(uint8_t Reg_Addr) {
     uint8_t rx[2] = {0};
 
     // SPI read transaction
-    gpio_put(PIN_BMP585_CS, 0);
+    cs_select(PIN_BMP585_CS);
     spi_write_read_blocking(spi0, tx, rx, 2);
-    gpio_put(PIN_BMP585_CS, 1);
+    cs_deselect(PIN_BMP585_CS);
 
-    // Byte 0 corresponds to TX command, Byte 1 holds register data
+    // Byte 0 corresponds to TX command garbage, Byte 1 holds register data
     return rx[1];
 }
 
-int main()
-{
-    Init();
+// Chip Select control functions with nop for timing adjustment 
+static inline void cs_select(uint cs_pin) {
+    asm volatile("nop \n nop \n nop");
+    gpio_put(cs_pin, 0);  // Active low
+    asm volatile("nop \n nop \n nop");
+}
 
-    BMP585_Init();
-
-    // Continuously read and print chip ID (Expected: 0x51) and revision ID (Expected: 0x32)
-    while (true) {
-        uint8_t chip_id = BMP585_ReadRegister(REG_CHIP_ID);
-        printf("Chip ID: 0x%02X\n", chip_id);
-        sleep_ms(1000);
-        uint8_t rev_id = BMP585_ReadRegister(REG_REV_ID);
-        printf("Revision ID: 0x%02X\n", rev_id);
-        sleep_ms(1000);
-    }
-
-    return 0;
+static inline void cs_deselect(uint cs_pin) {
+    asm volatile("nop \n nop \n nop");
+    gpio_put(cs_pin, 1);
+    asm volatile("nop \n nop \n nop");
 }
