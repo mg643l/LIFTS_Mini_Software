@@ -12,11 +12,24 @@ constexpr uint PIN_MMC5983MA_CS = 5;
 constexpr uint PIN_W25Q128JVSIQ_CS = 17;
 
 // BMP585 Register map
-constexpr uint8_t REG_CHIP_ID = 0x01;
-constexpr uint8_t REG_REV_ID = 0x02;
+constexpr uint8_t REG_BMP585_CHIP_ID = 0x01;
+constexpr uint8_t REG_BMP585_REV_ID = 0x02;
+constexpr uint8_t REG_BMP585_INT_STATUS = 0x27;
+constexpr uint8_t REG_BMP585_STATUS = 0x28;
 
 // Bitwise ORed with the register address 
 constexpr uint8_t BMP585_SPI_READ_BIT = 0x80;
+
+// BMP585 Register bit masks
+namespace BMP585 {
+    constexpr uint8_t ChipIdExpected   = 0x51;
+    constexpr uint8_t RevIdExpected    = 0x32;
+
+    constexpr uint8_t StatusNvmRdyMask  = (1 << 1);
+    constexpr uint8_t StatusNvmErrMask  = (1 << 2);
+    constexpr uint8_t IntStatusPorMask  = (1 << 4);
+}
+
 
 void Init();
 void BMP585_Init();
@@ -35,10 +48,10 @@ int main()
 
     // Continuously read and print chip ID (Expected: 0x51) and revision ID (Expected: 0x32)
     while (true) {
-        uint8_t chip_id = BMP585_ReadRegister(REG_CHIP_ID);
+        uint8_t chip_id = BMP585_ReadRegister(REG_BMP585_CHIP_ID);
         printf("Chip ID: 0x%02X\n", chip_id);
         sleep_ms(1000);
-        uint8_t rev_id = BMP585_ReadRegister(REG_REV_ID);
+        uint8_t rev_id = BMP585_ReadRegister(REG_BMP585_REV_ID);
         printf("Revision ID: 0x%02X\n", rev_id);
         sleep_ms(1000);
     }
@@ -91,7 +104,6 @@ void BMP585_Init() {
 
     if (!BMP585_Power_Up_Check()) {
         printf("BMP585 power-up check failed!\n");
-        return;
     } else {
         printf("BMP585 power-up check passed.\n");
     }
@@ -112,11 +124,17 @@ uint8_t BMP585_ReadRegister(uint8_t Reg_Addr) {
 }
 
 bool BMP585_Power_Up_Check() {
-    uint8_t chip_id = BMP585_ReadRegister(REG_CHIP_ID);
-    uint8_t rev_id = BMP585_ReadRegister(REG_REV_ID);
+    uint8_t chip_id    = BMP585_ReadRegister(REG_BMP585_CHIP_ID);
+    uint8_t rev_id     = BMP585_ReadRegister(REG_BMP585_REV_ID);
+    uint8_t int_status = BMP585_ReadRegister(REG_BMP585_INT_STATUS);
+    uint8_t status     = BMP585_ReadRegister(REG_BMP585_STATUS);
 
-    // Check if the read values match expected IDs
-    return (chip_id == 0x51) && (rev_id == 0x32);
+    bool chip_id_ok = (chip_id == BMP585::ChipIdExpected);
+    bool rev_id_ok  = (rev_id  == BMP585::RevIdExpected);
+    bool nvm_ok     = (status & BMP585::StatusNvmRdyMask) && !(status & BMP585::StatusNvmErrMask);
+    bool por_ok     = (int_status & BMP585::IntStatusPorMask);
+
+    return chip_id_ok && rev_id_ok && nvm_ok && por_ok;
 }
 
 // Chip Select control functions with nop for timing adjustment 
