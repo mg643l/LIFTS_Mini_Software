@@ -14,17 +14,22 @@ constexpr uint PIN_W25Q128JVSIQ_CS = 17;
 // BMP585 Register map
 constexpr uint8_t REG_CHIP_ID = 0x01;
 constexpr uint8_t REG_REV_ID = 0x02;
-constexpr uint8_t SPI_READ_BIT = 0x80;
+
+// Bitwise ORed with the register address 
+constexpr uint8_t BMP585_SPI_READ_BIT = 0x80;
 
 void Init();
 void BMP585_Init();
 uint8_t BMP585_ReadRegister(uint8_t Reg_Addr);
-static inline void cs_select(uint cs_pin);
-static inline void cs_deselect(uint cs_pin);
+bool BMP585_Power_Up_Check();
+static inline void CS_Select(uint cs_pin);
+static inline void CS_Deselect(uint cs_pin);
 
 int main()
 {
     Init();
+
+    sleep_ms(5000);
 
     BMP585_Init();
 
@@ -80,33 +85,48 @@ void BMP585_Init() {
     uint8_t dummy_rx[2] = {0};
 
     // Write dummy bytes to BMP585 for 16 SCK cycles
-    cs_select(PIN_BMP585_CS);
+    CS_Select(PIN_BMP585_CS);
     spi_write_read_blocking(spi0, dummy_tx, dummy_rx, 2);
-    cs_deselect(PIN_BMP585_CS);
+    CS_Deselect(PIN_BMP585_CS);
+
+    if (!BMP585_Power_Up_Check()) {
+        printf("BMP585 power-up check failed!\n");
+        return;
+    } else {
+        printf("BMP585 power-up check passed.\n");
+    }
 }
 
 uint8_t BMP585_ReadRegister(uint8_t Reg_Addr) {
     // 2 Bytes: [0] Reg Addr | Read Bit, [1] Data Output Clocking
-    uint8_t tx[2] = {static_cast<uint8_t>(Reg_Addr | SPI_READ_BIT), 0x00};
+    uint8_t tx[2] = {static_cast<uint8_t>(Reg_Addr | BMP585_SPI_READ_BIT), 0x00};
     uint8_t rx[2] = {0};
 
     // SPI read transaction
-    cs_select(PIN_BMP585_CS);
+    CS_Select(PIN_BMP585_CS);
     spi_write_read_blocking(spi0, tx, rx, 2);
-    cs_deselect(PIN_BMP585_CS);
+    CS_Deselect(PIN_BMP585_CS);
 
     // Byte 0 corresponds to TX command garbage, Byte 1 holds register data
     return rx[1];
 }
 
+bool BMP585_Power_Up_Check() {
+    uint8_t chip_id = BMP585_ReadRegister(REG_CHIP_ID);
+    uint8_t rev_id = BMP585_ReadRegister(REG_REV_ID);
+
+    // Check if the read values match expected IDs
+    return (chip_id == 0x51) && (rev_id == 0x32);
+}
+
 // Chip Select control functions with nop for timing adjustment 
-static inline void cs_select(uint cs_pin) {
+static inline void CS_Select(uint cs_pin) {
     asm volatile("nop \n nop \n nop");
     gpio_put(cs_pin, 0);  // Active low
     asm volatile("nop \n nop \n nop");
 }
 
-static inline void cs_deselect(uint cs_pin) {
+static inline void CS_Deselect(uint cs_pin) {
     asm volatile("nop \n nop \n nop");
     gpio_put(cs_pin, 1);
     asm volatile("nop \n nop \n nop");
