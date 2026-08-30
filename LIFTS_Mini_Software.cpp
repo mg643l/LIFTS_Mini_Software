@@ -22,6 +22,13 @@ constexpr uint8_t REG_BMP585_ODR_CONFIG  = 0x37;
 
 constexpr uint8_t BMP585_SPI_READ_BIT    = 0x80;
 
+constexpr uint8_t REG_BMP585_DATA_START = 0x1D;
+
+struct BMP585_Data {
+    float temperature_c;
+    float pressure_pa;
+};
+
 namespace BMP585 {
     constexpr uint8_t ChipIdExpected    = 0x51;
     constexpr uint8_t RevIdExpected     = 0x32;
@@ -73,6 +80,7 @@ uint8_t BMP585_ReadRegister(uint8_t Reg_Addr);
 void BMP585_WriteRegister(uint8_t Reg_Addr, uint8_t Data);
 bool BMP585_Power_Up_Check();
 void BMP585_Configure();
+bool BMP585_ReadData(BMP585_Data &out_data);
 
 static inline void CS_Select(uint cs_pin) {
     asm volatile("nop \n nop \n nop");
@@ -93,13 +101,16 @@ int main() {
     BMP585_Init();
     BMP585_Configure();
 
+    BMP585_Data sensor_data;
+
     while (true) {
-        uint8_t chip_id = BMP585_ReadRegister(REG_BMP585_CHIP_ID);
-        printf("Chip ID: 0x%02X\n", chip_id);
-        sleep_ms(1000);
-        uint8_t rev_id = BMP585_ReadRegister(REG_BMP585_REV_ID);
-        printf("Revision ID: 0x%02X\n", rev_id);
-        sleep_ms(1000); 
+        if (BMP585_ReadData(sensor_data)) {
+            printf("Temp: %.2f degC  |  Pressure: %.2f Pa (%.2f hPa)\n",
+                   sensor_data.temperature_c,
+                   sensor_data.pressure_pa,
+                   sensor_data.pressure_pa / 100.0f);
+        }
+        sleep_ms(500); // Poll at 50 Hz ODR configuration
     }
 
     return 0;
@@ -197,4 +208,35 @@ void BMP585_Configure() {
     BMP585_WriteRegister(REG_BMP585_ODR_CONFIG, odr_config);
 
     sleep_ms(5); // Allow power state transition to complete
+}
+
+bool BMP585_ReadData(BMP585_Data &out_data) {
+    // 1 command byte + 6 data bytes (TEMP_XLSB..PRESS_MSB) = 7 total bytes.
+    // BMP585 has NO dummy byte in its SPI read frame so
+    // the first data byte arrives immediately after the command byte.
+    uint8_t tx[7] = {static_cast<uint8_t>(REG_BMP585_DATA_START | BMP585_SPI_READ_BIT)};
+    uint8_t rx[7] = {0};
+
+    CS_Select(PIN_BMP585_CS);
+    spi_write_read_blocking(spi0, tx, rx, 7);
+    CS_Deselect(PIN_BMP585_CS);
+
+    // rx[0] is the address-echo byte (invalid); real data starts at rx[1].
+    uint32_t raw_temp = (static_cast<uint32_t>(rx[3]) << 16) |
+                        (static_cast<uint32_t>(rx[2]) << 8)  |
+                         static_cast<uint32_t>(rx[1]);
+
+    uint32_t raw_press = (static_cast<uint32_t>(rx[6]) << 16) |
+                         (static_cast<uint32_t>(rx[5]) << 8)  |
+                          static_cast<uint32_t>(rx[4]);
+
+    int32_t signed_temp = static_cast<int32_t>(raw_temp);
+    if (signed_temp & 0x00800000) {
+        signed_temp |= 0xFF000000;
+    }
+
+    out_data.temperature_c = static_cast<float>(signed_temp) / 65536.0f; // raw / 2^16
+    out_data.pressure_pa    = static_cast<float>(raw_press) / 64.0f;     // raw / 2^6
+
+    return true;
 }
