@@ -1,20 +1,77 @@
 #include <stdio.h>
+
 #include "pico/stdlib.h"
+#include "hardware/spi.h"
 
-constexpr uint LED_PIN = 6;
+#include "BMP585Sensor.hpp"
 
-int main()
-{
-    stdio_init_all();
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
+// SPI bus pin assignments.
+constexpr uint PIN_MISO = 20;
+constexpr uint PIN_MOSI = 19;
+constexpr uint PIN_SCK = 22;
+
+// Chip-select pins for devices connected to the SPI bus.
+constexpr uint PIN_BMP585_CS = 11;
+constexpr uint PIN_LSM6DSO32TR_CS = 3;
+constexpr uint PIN_MMC5983MA_CS = 5;
+constexpr uint PIN_W25Q128JVSIQ_CS = 17;
+
+void init();
+
+int main() {
+    // Initialise the standard I/O and SPI peripherals.
+    init();
+
+    // Create and initialise the BMP585 pressure sensor.
+    BMP585Sensor bmp585(PIN_BMP585_CS);
+    if (!bmp585.init()) {
+        printf("Sensor initialisation failed.\n");
+        while (true) tight_loop_contents();
+    }
+
+    // Configure the sensor's measurement settings.
+    bmp585.configure();
+
+    BMP585Sensor::Data sensor_data;
 
     while (true) {
-        gpio_put(LED_PIN, 1);
-        printf("LED on\n");
+        // Read the latest temperature and pressure measurements.
+        if (bmp585.readData(sensor_data)) {
+            printf("Temp: %.2f degC  |  Pressure: %.2f Pa (%.2f hPa)\n",
+                   sensor_data.temperature_c,
+                   sensor_data.pressure_pa,
+                   sensor_data.pressure_pa / 100.0f);
+        }
+
+        // Wait for 500 ms before taking the next measurement.
         sleep_ms(500);
-        gpio_put(LED_PIN, 0);
-        printf("LED off\n");
-        sleep_ms(500);
+    }
+
+    return 0;
+}
+
+// Initialises standard I/O, the SPI bus, and chip-select GPIOs.
+void init() {
+    stdio_init_all();
+
+    // Configure SPI0 for communication with the sensors at 500kHz.
+    spi_init(spi0, 500 * 1000);
+
+    gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
+    gpio_set_function(PIN_SCK, GPIO_FUNC_SPI);
+    gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
+
+    // Set all SPI device chip-select lines inactive.
+    uint cs_pins[] = {
+        PIN_BMP585_CS,
+        PIN_LSM6DSO32TR_CS,
+        PIN_MMC5983MA_CS,
+        PIN_W25Q128JVSIQ_CS
+    };
+
+    for (uint pin : cs_pins) {
+        gpio_init(pin);
+        gpio_set_dir(pin, GPIO_OUT);
+        gpio_put(pin, 1);
     }
 }
