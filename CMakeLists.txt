@@ -35,7 +35,10 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(LIFTS_Mini_Software LIFTS_Mini_Software.cpp )
+add_executable(LIFTS_Mini_Software
+        LIFTS_Mini_Software.cpp
+        BMP585Sensor.cpp
+)
 
 pico_set_program_name(LIFTS_Mini_Software "LIFTS_Mini_Software")
 pico_set_program_version(LIFTS_Mini_Software "0.1")
