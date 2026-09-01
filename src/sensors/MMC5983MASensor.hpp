@@ -8,13 +8,6 @@
 // MMC5983MA magnetometer sensor driver interface.
 class MMC5983MASensor {
 public:
-    enum Status : uint8_t {
-        MMC5983_OK = 0,
-        MMC5983_ERROR_TIMEOUT = 1,
-        MMC5983_ERROR_SPI = 2,
-        MMC5983_ERROR_ID = 3
-    };
-
     // Contains the magnetic field values calculated from the sensor output.
     struct Data {
         float mag_x_g;
@@ -53,13 +46,9 @@ public:
     void configure(ODR odr = ODR_50_HZ);
 
     // Reads the latest X, Y, and Z magnetic field values.
-    Status readData(Data &out_data);
+    bool readData(Data &out_data);
 
 private:
-    static constexpr uint8_t STATUS_MEAS_M_DONE = (1 << 0);
-    static constexpr uint32_t MMC5983_POLL_TIMEOUT_MS = 50;
-    static constexpr uint32_t MMC5983_RESET_DELAY_MS = 15;
-
     // Register mapping for the MMC5983MA magnetometer.
     static constexpr uint8_t REG_MMC5983MA_XOUT_0     = 0x00;
     static constexpr uint8_t REG_MMC5983MA_TOUT       = 0x07;
@@ -102,8 +91,4 @@ private:
         gpio_put(cs_pin_, 1);
         asm volatile("nop \n nop \n nop");
     }
-
-    void applyConfiguration(ODR odr);
-    void recoverFromTimeout(ODR odr);
-    Status waitForMeasurementReady();
 };
