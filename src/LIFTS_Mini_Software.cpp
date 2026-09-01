@@ -3,7 +3,7 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 
-#include "BMP585Sensor.hpp"
+#include "sensors/BMP585Sensor.hpp"
 
 // SPI bus pin assignments.
 constexpr uint PIN_MISO = 20;
