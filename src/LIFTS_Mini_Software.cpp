@@ -4,6 +4,7 @@
 #include "hardware/spi.h"
 
 #include "sensors/BMP585Sensor.hpp"
+#include "sensors/MMC5983MASensor.hpp"
 
 // SPI bus pin assignments.
 constexpr uint PIN_MISO = 20;
@@ -24,23 +25,45 @@ int main() {
 
     // Create and initialise the BMP585 pressure sensor.
     BMP585Sensor bmp585(PIN_BMP585_CS);
+
     if (!bmp585.init()) {
         printf("Sensor initialisation failed.\n");
+        while (true) tight_loop_contents();
+    }
+
+    // Create and initialise the MMC5983MA magnetometer sensor.
+    MMC5983MASensor mmc5983(PIN_MMC5983MA_CS);
+
+    if (!mmc5983.init()) {
+        printf("MMC5983MA power-up check failed!\n");
         while (true) tight_loop_contents();
     }
 
     // Configure the sensor's measurement settings.
     bmp585.configure();
 
-    BMP585Sensor::Data sensor_data;
+    BMP585Sensor::Data bmp585_sensor_data;
+
+    // Configure for 50 Hz continuous mode with automatic set/reset enabled.
+    mmc5983.configure(MMC5983MASensor::ODR_50_HZ);
+
+    MMC5983MASensor::Data mmc5983ma_sensor_data;
 
     while (true) {
         // Read the latest temperature and pressure measurements.
-        if (bmp585.readData(sensor_data)) {
+        if (bmp585.readData(bmp585_sensor_data)) {
             printf("Temp: %.2f degC  |  Pressure: %.2f Pa (%.2f hPa)\n",
-                   sensor_data.temperature_c,
-                   sensor_data.pressure_pa,
-                   sensor_data.pressure_pa / 100.0f);
+                   bmp585_sensor_data.temperature_c,
+                   bmp585_sensor_data.pressure_pa,
+                   bmp585_sensor_data.pressure_pa / 100.0f);
+        }
+
+        // Read the latest magnetic field values from the MMC5983MA.
+        if (mmc5983.readData(mmc5983ma_sensor_data)) {
+            printf("Mag X: %7.3f G | Y: %7.3f G | Z: %7.3f G\n",
+                   mmc5983ma_sensor_data.mag_x_g,
+                   mmc5983ma_sensor_data.mag_y_g,
+                   mmc5983ma_sensor_data.mag_z_g);
         }
 
         // Wait for 500 ms before taking the next measurement.
@@ -54,7 +77,7 @@ int main() {
 void init() {
     stdio_init_all();
 
-    // Configure SPI0 for communication with the sensors at 500kHz.
+    // Configure SPI0 for communication with the sensors at 500 kHz.
     spi_init(spi0, 500 * 1000);
 
     gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
