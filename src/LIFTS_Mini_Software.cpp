@@ -24,14 +24,12 @@ int main() {
     init();
 
     // Create and initialise the BMP585 pressure sensor.
-    /*
     BMP585Sensor bmp585(PIN_BMP585_CS);
 
     if (!bmp585.init()) {
         printf("Sensor initialisation failed.\n");
         while (true) tight_loop_contents();
     }
-    */
 
     // Create and initialise the MMC5983MA magnetometer sensor.
     MMC5983MASensor mmc5983(PIN_MMC5983MA_CS);
@@ -42,32 +40,30 @@ int main() {
     }
 
     // Configure the sensor's measurement settings.
-    // bmp585.configure();
+    bmp585.configure();
 
-    // BMP585Sensor::Data sensor_data;
+    BMP585Sensor::Data bmp585_sensor_data;
 
     // Configure for 50 Hz continuous mode with automatic set/reset enabled.
     mmc5983.configure(MMC5983MASensor::ODR_50_HZ);
 
-    MMC5983MASensor::Data sensor_data;
+    MMC5983MASensor::Data mmc5983ma_sensor_data;
 
     while (true) {
         // Read the latest temperature and pressure measurements.
-        /*
-        if (bmp585.readData(sensor_data)) {
+        if (bmp585.readData(bmp585_sensor_data)) {
             printf("Temp: %.2f degC  |  Pressure: %.2f Pa (%.2f hPa)\n",
-                   sensor_data.temperature_c,
-                   sensor_data.pressure_pa,
-                   sensor_data.pressure_pa / 100.0f);
+                   bmp585_sensor_data.temperature_c,
+                   bmp585_sensor_data.pressure_pa,
+                   bmp585_sensor_data.pressure_pa / 100.0f);
         }
-        */
 
         // Read the latest magnetic field values from the MMC5983MA.
-        if (mmc5983.readData(sensor_data)) {
+        if (mmc5983.readData(mmc5983ma_sensor_data)) {
             printf("Mag X: %7.3f G | Y: %7.3f G | Z: %7.3f G\n",
-                   sensor_data.mag_x_g,
-                   sensor_data.mag_y_g,
-                   sensor_data.mag_z_g);
+                   mmc5983ma_sensor_data.mag_x_g,
+                   mmc5983ma_sensor_data.mag_y_g,
+                   mmc5983ma_sensor_data.mag_z_g);
         }
 
         // Wait for 500 ms before taking the next measurement.
