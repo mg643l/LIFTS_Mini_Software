@@ -75,6 +75,9 @@ private:
     static constexpr uint8_t CTRL2_CMM_EN    = (1 << 3);
     static constexpr uint8_t CTRL2_EN_PRD_SET = (1 << 7);
 
+    static constexpr uint8_t STATUS_M_DONE = (1 << 0);
+    static constexpr uint8_t STATUS_T_DONE = (1 << 1);
+
     // GPIO used to select this sensor on the shared SPI bus.
     uint cs_pin_;
 

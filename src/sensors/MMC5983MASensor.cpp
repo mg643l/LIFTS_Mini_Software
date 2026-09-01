@@ -69,6 +69,22 @@ void MMC5983MASensor::configure(ODR odr) {
 }
 
 bool MMC5983MASensor::readData(Data &out_data) {
+    // The MMC5983MA reports a new sample only after the measurement-complete
+    // flag in STATUS is set. If we read data too early, the sensor keeps
+    // returning the same stale sample forever.
+    uint8_t status = 0;
+    for (int attempt = 0; attempt < 20; ++attempt) {
+        status = readRegister(REG_MMC5983MA_STATUS);
+        if (status & STATUS_M_DONE) {
+            break;
+        }
+        sleep_ms(1);
+    }
+
+    if (!(status & STATUS_M_DONE)) {
+        return false;
+    }
+
     // Burst-read the X, Y, Z, and temperature registers starting at 0x00.
     // [0-1]: Xout, [2-3]: Yout, [4-5]: Zout, [6]: XYZout2, [7]: Tout
     uint8_t tx[9] = {
