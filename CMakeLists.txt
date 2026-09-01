@@ -36,8 +36,8 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(LIFTS_Mini_Software
-        LIFTS_Mini_Software.cpp
-        BMP585Sensor.cpp
+        src/LIFTS_Mini_Software.cpp
+        src/BMP585Sensor.cpp
 )
 
 pico_set_program_name(LIFTS_Mini_Software "LIFTS_Mini_Software")
@@ -56,6 +56,7 @@ target_link_libraries(LIFTS_Mini_Software
 # Add the standard include files to the build
 target_include_directories(LIFTS_Mini_Software PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 pico_add_extra_outputs(LIFTS_Mini_Software)
