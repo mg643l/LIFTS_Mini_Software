@@ -52,9 +52,8 @@ int main() {
     while (true) {
         // Read the latest temperature and pressure measurements.
         if (bmp585.readData(bmp585_sensor_data)) {
-            printf("Temp: %.2f degC  |  Pressure: %.2f Pa (%.2f hPa)\n",
+            printf("Temp: %.2f degC | Pressure: %.2f hPa\n",
                    bmp585_sensor_data.temperature_c,
-                   bmp585_sensor_data.pressure_pa,
                    bmp585_sensor_data.pressure_pa / 100.0f);
         }
 
@@ -66,8 +65,8 @@ int main() {
                    mmc5983ma_sensor_data.mag_z_g);
         }
 
-        // Wait for 500 ms before taking the next measurement.
-        sleep_ms(500);
+        // Wait for 100 ms before taking the next measurement.
+        sleep_ms(100);
     }
 
     return 0;
