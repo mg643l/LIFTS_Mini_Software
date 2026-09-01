@@ -17,14 +17,26 @@ public:
 
     // Output data rates supported in continuous measurement mode.
     enum ODR : uint8_t {
-        ODR_OFF    = 0x00,
-        ODR_1_HZ   = 0x01,
-        ODR_10_HZ  = 0x02,
-        ODR_20_HZ  = 0x03,
-        ODR_50_HZ  = 0x04,
-        ODR_100_HZ = 0x05,
-        ODR_200_HZ = 0x06,
+        ODR_OFF     = 0x00,
+        ODR_1_HZ    = 0x01,
+        ODR_10_HZ   = 0x02,
+        ODR_20_HZ   = 0x03,
+        ODR_50_HZ   = 0x04,
+        ODR_100_HZ  = 0x05,
+        ODR_200_HZ  = 0x06,
         ODR_1000_HZ = 0x07
+    };
+
+    // Periodic set interval selection for Prd_set[2:0] in Control Register 2.
+    enum PeriodicSet : uint8_t {
+        PRD_SET_1    = 0x00,
+        PRD_SET_25   = 0x01,
+        PRD_SET_75   = 0x02,
+        PRD_SET_100  = 0x03,
+        PRD_SET_250  = 0x04,
+        PRD_SET_500  = 0x05,
+        PRD_SET_1000 = 0x06,
+        PRD_SET_2000 = 0x07
     };
 
     // Creates a sensor interface using the specified chip-select GPIO.
@@ -43,7 +55,7 @@ public:
     bool powerUpCheck();
 
     // Configures the magnetometer for continuous sampling.
-    void configure(ODR odr = ODR_50_HZ);
+    void configure(ODR odr = ODR_50_HZ, PeriodicSet periodic_set = PRD_SET_100);
 
     // Reads the latest X, Y, and Z magnetic field values.
     bool readData(Data &out_data);
@@ -73,6 +85,7 @@ private:
     static constexpr uint8_t CTRL1_SW_RST   = (1 << 7);
 
     static constexpr uint8_t CTRL2_CMM_EN    = (1 << 3);
+    static constexpr uint8_t CTRL2_PRD_SET_MASK = (0x07 << 4);
     static constexpr uint8_t CTRL2_EN_PRD_SET = (1 << 7);
 
     static constexpr uint8_t STATUS_M_DONE = (1 << 0);

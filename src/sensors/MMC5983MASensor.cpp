@@ -2,6 +2,24 @@
 
 #include <stdio.h>
 
+#include "pico/time.h"
+
+#define MMC5983MA_DISABLE_AUTO_SR 0
+
+static uint16_t mmc5983ma_prd_set_measurements(uint8_t prd_set_bits) {
+    switch (prd_set_bits & 0x07) {
+        case 0x00: return 1;
+        case 0x01: return 25;
+        case 0x02: return 75;
+        case 0x03: return 100;
+        case 0x04: return 250;
+        case 0x05: return 500;
+        case 0x06: return 1000;
+        case 0x07: return 2000;
+        default:   return 0;
+    }
+}
+
 MMC5983MASensor::MMC5983MASensor(uint cs_pin)
     : cs_pin_(cs_pin) {}
 
@@ -56,15 +74,33 @@ bool MMC5983MASensor::powerUpCheck() {
     return (prod_id == ExpectedProductId);
 }
 
-void MMC5983MASensor::configure(ODR odr) {
+void MMC5983MASensor::configure(ODR odr, PeriodicSet periodic_set) {
     // Set the measurement bandwidth filter for the selected output data rate.
     writeRegister(REG_MMC5983MA_CONTROL_1, CTRL1_BW_100HZ);
 
-    // Enable automatic set/reset and periodic set behaviour.
-    writeRegister(REG_MMC5983MA_CONTROL_0, CTRL0_AUTO_SR_EN);
+    // Diagnostic-only configuration log: keep the operating mode otherwise
+    // unchanged, but allow isolating the AUTO_SR coil pulsing path.
+    uint8_t ctrl0 = CTRL0_AUTO_SR_EN;
+#if MMC5983MA_DISABLE_AUTO_SR
+    ctrl0 = 0x00;
+#endif
 
-    // Configure continuous measurement mode with the requested ODR.
-    uint8_t ctrl2 = (odr & 0x07) | CTRL2_CMM_EN | CTRL2_EN_PRD_SET;
+    // Configure continuous measurement mode with the requested ODR and a
+    // periodic SET interval that avoids firing on every sample.
+    uint8_t ctrl2 = (odr & 0x07) |
+                    (static_cast<uint8_t>(periodic_set) << 4) |
+                    CTRL2_CMM_EN |
+                    CTRL2_EN_PRD_SET;
+    uint8_t prd_set_bits = (ctrl2 >> 4) & 0x07;
+    uint16_t measurements_between_sets = mmc5983ma_prd_set_measurements(prd_set_bits);
+
+    printf("MMC5983MA configure: write CTRL0[0x09]=0x%02X, CTRL2[0x0B]=0x%02X, Prd_set[2:0]=0x%X (%u measurements between SETs)\n",
+           ctrl0,
+           ctrl2,
+           prd_set_bits,
+           measurements_between_sets);
+
+    writeRegister(REG_MMC5983MA_CONTROL_0, ctrl0);
     writeRegister(REG_MMC5983MA_CONTROL_2, ctrl2);
 }
 
@@ -98,7 +134,9 @@ bool MMC5983MASensor::readData(Data &out_data) {
         }
 
         if (!(status & STATUS_M_DONE)) {
-            printf("MMC5983MA still not ready after rearm: status=0x%02X\n", status);
+            printf("MMC5983MA still not ready after rearm: status=0x%02X, elapsed_ms=%lu\n",
+                   status,
+                   to_ms_since_boot(get_absolute_time()));
             return false;
         }
     }
