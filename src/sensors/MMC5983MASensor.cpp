@@ -82,7 +82,25 @@ bool MMC5983MASensor::readData(Data &out_data) {
     }
 
     if (!(status & STATUS_M_DONE)) {
-        return false;
+        printf("MMC5983MA not ready first pass: status=0x%02X\n", status);
+
+        // The sensor can occasionally get stuck in a stale state after a long
+        // run. Re-arming the set/reset pulse gives it a fresh measurement cycle.
+        writeRegister(REG_MMC5983MA_CONTROL_0, CTRL0_SET);
+        sleep_ms(2);
+
+        for (int attempt = 0; attempt < 20; ++attempt) {
+            status = readRegister(REG_MMC5983MA_STATUS);
+            if (status & STATUS_M_DONE) {
+                break;
+            }
+            sleep_ms(1);
+        }
+
+        if (!(status & STATUS_M_DONE)) {
+            printf("MMC5983MA still not ready after rearm: status=0x%02X\n", status);
+            return false;
+        }
     }
 
     // Burst-read the X, Y, Z, and temperature registers starting at 0x00.
