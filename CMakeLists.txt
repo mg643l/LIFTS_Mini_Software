@@ -38,7 +38,6 @@ pico_sdk_init()
 add_executable(LIFTS_Mini_Software
         src/LIFTS_Mini_Software.cpp
         src/sensors/BMP585Sensor.cpp
-        src/sensors/MMC5983MASensor.cpp
 )
 
 pico_set_program_name(LIFTS_Mini_Software "LIFTS_Mini_Software")

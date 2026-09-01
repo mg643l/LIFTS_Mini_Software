@@ -4,7 +4,6 @@
 #include "hardware/spi.h"
 
 #include "sensors/BMP585Sensor.hpp"
-#include "sensors/MMC5983MASensor.hpp"
 
 // SPI bus pin assignments.
 constexpr uint PIN_MISO = 20;
@@ -31,23 +30,11 @@ int main() {
         while (true) tight_loop_contents();
     }
 
-    // Create and initialise the MMC5983MA magnetometer sensor.
-    MMC5983MASensor mmc5983(PIN_MMC5983MA_CS);
-
-    if (!mmc5983.init()) {
-        printf("MMC5983MA power-up check failed!\n");
-        while (true) tight_loop_contents();
-    }
-
     // Configure the sensor's measurement settings.
     bmp585.configure();
 
     BMP585Sensor::Data bmp585_sensor_data;
 
-    // Configure for 50 Hz continuous mode with automatic set/reset enabled.
-    mmc5983.configure(MMC5983MASensor::ODR_50_HZ);
-
-    MMC5983MASensor::Data mmc5983ma_sensor_data;
 
     while (true) {
         // Read the latest temperature and pressure measurements.
@@ -55,14 +42,6 @@ int main() {
             printf("Temp: %.2f degC | Pressure: %.2f hPa\n",
                    bmp585_sensor_data.temperature_c,
                    bmp585_sensor_data.pressure_pa / 100.0f);
-        }
-
-        // Read the latest magnetic field values from the MMC5983MA.
-        if (mmc5983.readData(mmc5983ma_sensor_data)) {
-            printf("Mag X: %7.3f G | Y: %7.3f G | Z: %7.3f G\n",
-                   mmc5983ma_sensor_data.mag_x_g,
-                   mmc5983ma_sensor_data.mag_y_g,
-                   mmc5983ma_sensor_data.mag_z_g);
         }
 
         // Wait for 100 ms before taking the next measurement.
