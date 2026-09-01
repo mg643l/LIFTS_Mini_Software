@@ -5,7 +5,7 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 
-// Provides an interface for communicating with a Bosch BMP585 pressure sensor over SPI.
+// BMP585 pressure sensor driver interface.
 class BMP585Sensor {
 public:
     // Contains the temperature and pressure measurements returned by the sensor.

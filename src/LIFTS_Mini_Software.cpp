@@ -33,6 +33,7 @@ int main() {
     }
     */
 
+    // Create and initialise the MMC5983MA magnetometer sensor.
     MMC5983MASensor mmc5983(PIN_MMC5983MA_CS);
 
     if (!mmc5983.init()) {
@@ -45,7 +46,7 @@ int main() {
 
     // BMP585Sensor::Data sensor_data;
 
-    // Configure for 50Hz continuous mode with Automatic Set/Reset enabled
+    // Configure for 50 Hz continuous mode with automatic set/reset enabled.
     mmc5983.configure(MMC5983MASensor::ODR_50_HZ);
 
     MMC5983MASensor::Data sensor_data;
@@ -61,6 +62,7 @@ int main() {
         }
         */
 
+        // Read the latest magnetic field values from the MMC5983MA.
         if (mmc5983.readData(sensor_data)) {
             printf("Mag X: %7.3f G | Y: %7.3f G | Z: %7.3f G\n",
                    sensor_data.mag_x_g,
@@ -79,7 +81,7 @@ int main() {
 void init() {
     stdio_init_all();
 
-    // Configure SPI0 for communication with the sensors at 500kHz.
+    // Configure SPI0 for communication with the sensors at 500 kHz.
     spi_init(spi0, 500 * 1000);
 
     gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
