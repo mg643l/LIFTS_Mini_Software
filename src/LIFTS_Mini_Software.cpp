@@ -58,11 +58,14 @@ int main() {
         }
 
         // Read the latest magnetic field values from the MMC5983MA.
-        if (mmc5983.readData(mmc5983ma_sensor_data)) {
+        const auto mmc_status = mmc5983.readData(mmc5983ma_sensor_data);
+        if (mmc_status == MMC5983MASensor::MMC5983_OK) {
             printf("Mag X: %7.3f G | Y: %7.3f G | Z: %7.3f G\n",
                    mmc5983ma_sensor_data.mag_x_g,
                    mmc5983ma_sensor_data.mag_y_g,
                    mmc5983ma_sensor_data.mag_z_g);
+        } else if (mmc_status == MMC5983MASensor::MMC5983_ERROR_TIMEOUT) {
+            printf("MMC5983MA timeout; reset/recovery invoked.\n");
         }
 
         // Wait for 100 ms before taking the next measurement.
